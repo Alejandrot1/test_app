@@ -1,12 +1,14 @@
 # ai_builder.py
-# pip install openai python-dotenv
+# pip install openai python-dotenv requests
 # export OPENAI_API_KEY=sk-...
+# (for REST path) export GITHUB_TOKEN=<personal-access-token with repo scope>
 
-import os, re, json, zipfile, subprocess, argparse
+import os, re, json, zipfile, subprocess, argparse, time, base64
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 
+import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -14,7 +16,7 @@ load_dotenv()
 
 # ----------------------------- Constants --------------------------------------
 
-DEFAULT_MODEL = "gpt-4o-mini"  # change to your preferred model
+DEFAULT_MODEL = "gpt-4o-mini"
 FILE_BLOCK_REGEX = r'---\s*file:\s*(.+?)\s*---\n(.*?)(?=(?:\n---\s*file:\s*)|\Z)'
 DIFF_BLOCK_REGEX = r'---\s*diff:\s*(.+?)\s*---\n(.*?)(?=(?:\n---\s*(?:file|diff|patch):\s*)|\Z)'
 PATCH_BLOCK_REGEX = r'---\s*patch:\s*(.+?)\s*---\n(.*?)(?=(?:\n---\s*(?:file|diff|patch):\s*)|\Z)'
@@ -23,7 +25,7 @@ DEFAULT_SYSTEM = """You are a senior full-stack engineer.
 When the user describes an app or change, output either:
 1) COMPLETE files, or
 2) ONLY UPDATED files,
-using **exactly** one of these block formats:
+using exactly one of these block formats:
 
 --- file: <relative/path/filename.ext> ---
 <raw file contents>
@@ -45,16 +47,14 @@ Rules:
 FIREBASE_PRESET = """
 Firebase preset:
 - If building a web app, include:
-  - firebase.json (hosting config; SPA rewrite to /index.html; optionally rewrite /api/**)
+  - firebase.json (SPA rewrite to /index.html; optionally rewrite /api/**)
   - .firebaserc (project id: "your-firebase-project-id")
-  - firestore.rules (locked by default)
-  - storage.rules (locked by default)
+  - firestore.rules, storage.rules (locked by default)
   - .gitignore (.env, node_modules, dist/build, functions/node_modules)
   - .env.example
   - emulators.json (hosting, firestore, functions if present)
-  - Vite + React + Tailwind (unless user overrides); include tailwind/postcss configs
-- If API requested: Cloud Functions (Node 20, TypeScript) exposing /api/hello
-  and hosting rewrite for /api/**.
+  - Vite + React + Tailwind (unless user overrides) with tailwind/postcss configs
+- If API requested: Cloud Functions (Node 20, TypeScript) exposing /api/hello (+ rewrite).
 - Include a minimal README with Firebase CLI steps.
 """
 
@@ -65,16 +65,14 @@ GCP Run preset:
   - backend/requirements.txt (fastapi, uvicorn[standard])
   - Dockerfile (python:3.11-slim)
   - README.md with build/push/deploy steps for Artifact Registry + Cloud Run.
-- Firebase Hosting rewrites:
-  - firebase.json routes /api/** to Cloud Run (placeholder serviceId "your-run-service", region "us-central1"),
-    and SPA fallback to /index.html if a front-end exists.
-- Front-end default: Vite + React + Tailwind with tailwind/postcss configs (unless user opts out).
+- Firebase Hosting rewrites to Cloud Run for /api/** (placeholder serviceId + region),
+  plus SPA fallback if a front-end exists.
+- Front-end default: Vite + React + Tailwind unless user opts out.
 """
 
 CODE_ONLY_PRESET = """
 CODE-ONLY mode:
-- Do NOT generate website scaffolding (no firebase.json, .firebaserc, package.json, vite config, tailwind/Dockerfiles)
-  unless explicitly asked.
+- No website scaffolding (no firebase.json, .firebaserc, vite config, Dockerfiles) unless explicitly asked.
 - Return only the requested scripts/notebooks/modules as file/diff/patch blocks.
 """
 
@@ -90,7 +88,7 @@ WHITELISTED_COMMANDS = [
     "vite build", "tsc -v",
     # Python
     "python -m pytest -q", "pytest -q",
-    # Firebase / emulators (no deploy here)
+    # Firebase emulators (no deploy)
     "firebase emulators:start --only hosting",
 ]
 
@@ -116,6 +114,31 @@ def is_safe_relative(path: str) -> bool:
         if part in ("..",):
             return False
     return True
+
+def parse_origin_url_to_repo(origin: str) -> Optional[Tuple[str, str]]:
+    """
+    Supports:
+      https://github.com/owner/repo.git
+      git@github.com:owner/repo.git
+    Returns (owner, repo) or None.
+    """
+    if not origin: return None
+    origin = origin.strip()
+    if origin.startswith("git@github.com:"):
+        rest = origin.split("git@github.com:")[1]
+    elif origin.startswith("https://github.com/"):
+        rest = origin.split("https://github.com/")[1]
+    else:
+        return None
+    rest = rest[:-4] if rest.endswith(".git") else rest
+    parts = rest.split("/")
+    if len(parts) != 2: return None
+    return parts[0], parts[1]
+
+def first_nonempty(*vals):
+    for v in vals:
+        if v: return v
+    return None
 
 # --------------------------- Data classes -------------------------------------
 
@@ -193,11 +216,8 @@ class AIProjectScaffolder:
     def send(self, user_prompt: str, preset: Optional[str] = None, mode: str = "web",
              temperature: float = 0.2, max_output_tokens: int = 8000):
         msgs = self._build_messages(user_prompt, preset=preset, mode=mode)
-
-        # record user turn first, so history.json always exists even if API fails
         self.history.append(ChatTurn("user", user_prompt))
         self.save_history()
-
         try:
             resp = self.client.responses.create(
                 model=self.model,
@@ -224,7 +244,6 @@ class AIProjectScaffolder:
     def _safe_write(self, root: Path, rel_path: str, content: str):
         if not is_safe_relative(rel_path):
             raise ValueError(f"Unsafe path: {rel_path}")
-        # (optional) tighten ext policy here if you like
         dest = root / rel_path
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(content, encoding="utf-8")
@@ -252,16 +271,12 @@ class AIProjectScaffolder:
             if self.verbose: print("[patch-diff]", target)
 
     def _naive_apply_diff(self, original_lines: List[str], diff_text: str) -> List[str]:
-        # placeholder diff applier — consider a real patch lib for production
         new_lines = [l for l in original_lines]
         adds, removes = [], []
         for line in diff_text.splitlines(True):
-            if line.startswith(('+++', '---', '@@')):
-                continue
-            if line.startswith('+'):
-                adds.append(line[1:])
-            elif line.startswith('-'):
-                removes.append(line[1:])
+            if line.startswith(('+++', '---', '@@')): continue
+            if line.startswith('+'): adds.append(line[1:])
+            elif line.startswith('-'): removes.append(line[1:])
         for r in removes:
             try:
                 idx = new_lines.index(r)
@@ -272,17 +287,6 @@ class AIProjectScaffolder:
         for a in adds:
             new_lines.insert(insert_at, a); insert_at += 1
         return new_lines
-    
-    def gh_repo_create_and_push(self, name: str, public: bool = True):
-        """Create GitHub repo via GH CLI and push current project."""
-        if not self.gh_available():
-            return False, "", "GitHub CLI (gh) not found in PATH."
-        vis = "--public" if public else "--private"
-        p = subprocess.run(
-            ["gh", "repo", "create", name, "--source", ".", vis, "--push"],
-            cwd=str(self.project_root_path), capture_output=True, text=True
-        )
-        return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
 
     def apply_json_patches(self, root: Optional[str], patch_blocks):
         root_path = Path(root).expanduser().resolve() if root else self.project_root_path
@@ -382,15 +386,12 @@ class AIProjectScaffolder:
             ".env\nnode_modules/\ndist/\nbuild/\nfunctions/node_modules/\n__pycache__/\n*.pyc\n.artifacts/\n",
             encoding="utf-8"
         )
-        if self.verbose: print("[gitignore] created")
 
     def ensure_repo_initialized(self):
         if not self.git_is_available():
-            if self.verbose: print("[git] not installed or not in PATH; skipping git init/commit.")
             return False
         if not (self.project_root_path / ".git").exists():
-            ok, out, err = self.git(["init", "-b", "main"])
-            if self.verbose: print("[git init -b main]", ok, err or out)
+            self.git(["init", "-b", "main"])
             self.ensure_gitignore()
             self.git_set_local_identity_if_missing()
             self.git(["add", "-A"])
@@ -401,8 +402,7 @@ class AIProjectScaffolder:
         if not self.ensure_repo_initialized():
             return
         self.git(["add", "-A"])
-        ok, out, err = self.git(["commit", "-m", message])
-        if self.verbose: print("[git commit]", ok, err or out)
+        self.git(["commit", "-m", message])
 
     def git_remote_exists(self) -> bool:
         ok, out, _ = self.git(["remote", "-v"])
@@ -417,32 +417,188 @@ class AIProjectScaffolder:
 
     def git_fetch(self):
         if self.git_remote_exists():
-            ok, _, err = self.git(["fetch", "origin"])
-            if self.verbose: print("[git fetch]", ok, err)
+            self.git(["fetch", "origin"])
 
     def git_pull_rebase_main(self):
         if self.git_remote_exists():
-            ok, out, err = self.git(["pull", "--rebase", "origin", "main"])
-            if self.verbose: print("[git pull --rebase origin main]", ok, err or out)
+            self.git(["pull", "--rebase", "origin", "main"])
 
     def git_push_u_main(self):
         if not self.git_remote_exists():
-            if self.verbose: print("[git push] skipped: no 'origin' remote set.")
             return False
         self.git(["branch", "-M", "main"])
-        ok, out, err = self.git(["push", "-u", "origin", "main"])
-        if self.verbose: print("[git push -u origin main]", ok, err or out)
+        ok, _, _ = self.git(["push", "-u", "origin", "main"])
         return ok
 
     def gh_available(self) -> bool:
         import shutil
         return shutil.which("gh") is not None
 
+    def gh_repo_create_and_push(self, name: str, public: bool = True):
+        """Create GitHub repo via GH CLI and push current project."""
+        if not self.gh_available():
+            return False, "", "GitHub CLI (gh) not found in PATH."
+        # auth status (best-effort)
+        auth = subprocess.run(["gh", "auth", "status"], cwd=str(self.project_root_path),
+                              capture_output=True, text=True)
+        if auth.returncode != 0:
+            return False, "", f"gh auth not ready:\n{auth.stderr or auth.stdout}"
+        vis = "--public" if public else "--private"
+        p = subprocess.run(
+            ["gh", "repo", "create", name, "--source", ".", vis, "--push"],
+            cwd=str(self.project_root_path), capture_output=True, text=True
+        )
+        return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
+
+    # ------- CI watch (GitHub Actions) -----------------------------------------
+
+    def origin_owner_repo(self) -> Optional[Tuple[str,str]]:
+        ok, out, _ = self.git(["remote", "-v"])
+        if not ok or "origin" not in out: return None
+        first = [line for line in out.splitlines() if line.startswith("origin")][:1]
+        if not first: return None
+        url = first[0].split()[1]
+        return parse_origin_url_to_repo(url)
+
+    def gh_actions_latest_run_cli(self, repo: str, branch: str = "main") -> Optional[str]:
+        """Returns run id (string) via gh, or None."""
+        if not self.gh_available(): return None
+        p = subprocess.run(
+            ["gh","run","list","--repo",repo,"--branch",branch,"--limit","1","--json","databaseId,status,conclusion"],
+            capture_output=True, text=True
+        )
+        if p.returncode != 0: return None
+        data = json.loads(p.stdout or "[]")
+        if not data: return None
+        return str(data[0]["databaseId"])
+
+    def gh_actions_run_log_cli(self, repo: str, run_id: str) -> Optional[str]:
+        if not self.gh_available(): return None
+        p = subprocess.run(
+            ["gh","run","view",run_id,"--repo",repo,"--log"],
+            capture_output=True, text=True
+        )
+        if p.returncode != 0: return None
+        return p.stdout
+
+    def gh_actions_latest_run_rest(self, owner: str, repo: str, branch: str = "main") -> Optional[int]:
+        token = os.getenv("GITHUB_TOKEN", "").strip()
+        if not token: return None
+        url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs?branch={branch}&per_page=1"
+        r = requests.get(url, headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
+        if r.status_code != 200: return None
+        js = r.json()
+        runs = js.get("workflow_runs", [])
+        if not runs: return None
+        return runs[0]["id"]
+
+    def gh_actions_run_log_rest(self, owner: str, repo: str, run_id: int) -> Optional[str]:
+        token = os.getenv("GITHUB_TOKEN", "").strip()
+        if not token: return None
+        # logs are a zip; GitHub returns a URL that serves a zip
+        url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/logs"
+        r = requests.get(url, headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
+        if r.status_code != 200: return None
+        # Some clients will get a zip; GH also returns a redirect to zip. We’ll just return text pointer.
+        # Simpler approach: also fetch the jobs & steps:
+        jr = requests.get(f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
+                          headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
+        if jr.status_code != 200: return None
+        out_lines = []
+        for job in jr.json().get("jobs", []):
+            out_lines.append(f"# Job: {job.get('name')} ({job.get('status')}/{job.get('conclusion')})")
+            for step in job.get("steps", []):
+                out_lines.append(f"## Step: {step.get('name')} ({step.get('status')}/{step.get('conclusion')})")
+                # Individual step logs API is enterprise-only; we capture names/status here.
+        return "\n".join(out_lines) if out_lines else None
+
+    def ci_poll_and_collect_logs(self, repo_hint: Optional[str], branch: str = "main",
+                                 wait_seconds: int = 180, poll_interval: int = 10) -> Tuple[str, Optional[str]]:
+        """
+        Returns (status, logs_text) where status in {"success","failure","timed_out","unknown"}.
+        Prefers gh CLI; falls back to REST.
+        """
+        # derive owner/repo
+        owner_repo = None
+        if repo_hint and "/" in repo_hint:
+            owner_repo = tuple(repo_hint.split("/",1))
+        else:
+            owner_repo = self.origin_owner_repo()
+        if not owner_repo:
+            return "unknown", "No origin remote detected; cannot infer repo."
+
+        owner, repo = owner_repo if len(owner_repo)==2 else (None, None)
+        full = f"{owner}/{repo}" if owner else repo_hint
+
+        # initial fetch of latest run id using gh CLI or REST
+        run_id = None
+        if self.gh_available():
+            rid = self.gh_actions_latest_run_cli(full, branch=branch)
+            run_id = str(rid) if rid else None
+        if not run_id:
+            rid = self.gh_actions_latest_run_rest(owner, repo, branch=branch) if owner and repo else None
+            run_id = str(rid) if rid else None
+        if not run_id:
+            return "unknown", "Could not find a workflow run to inspect."
+
+        # poll status via gh if possible, else REST
+        start = time.time()
+        status = "unknown"
+        logs_text = None
+        while time.time() - start < wait_seconds:
+            if self.gh_available():
+                p = subprocess.run(
+                    ["gh","run","view",run_id,"--repo",full,"--json","status,conclusion"],
+                    capture_output=True, text=True
+                )
+                if p.returncode == 0:
+                    js = json.loads(p.stdout or "{}")
+                    st = js.get("status"); concl = js.get("conclusion")
+                else:
+                    st = None; concl = None
+            else:
+                token = os.getenv("GITHUB_TOKEN","").strip()
+                if not token: break
+                rr = requests.get(f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}",
+                                  headers={"Authorization": f"Bearer {token}","Accept":"application/vnd.github+json"})
+                if rr.status_code != 200: break
+                jj = rr.json(); st = jj.get("status"); concl = jj.get("conclusion")
+
+            if st in ("completed","success","failure","cancelled") or (st=="completed" and concl):
+                if concl == "success":
+                    status = "success"
+                elif concl in ("failure","cancelled","timed_out","action_required"):
+                    status = "failure"
+                else:
+                    status = "unknown"
+                break
+
+            time.sleep(poll_interval)
+
+        if status == "unknown" and (time.time() - start) >= wait_seconds:
+            return "timed_out", "CI watch timed out before completion."
+
+        # fetch logs
+        if self.gh_available():
+            logs_text = self.gh_actions_run_log_cli(full, run_id)
+        if not logs_text and owner and repo:
+            logs_text = self.gh_actions_run_log_rest(owner, repo, int(run_id))
+
+        return status, logs_text
+
+    def summarize_ci_logs_for_prompt(self, logs: str, max_chars: int = 12000) -> str:
+        if not logs:
+            return "No CI logs available."
+        # keep last portion + error lines
+        tail = logs[-max_chars:]
+        error_lines = [ln for ln in tail.splitlines() if re.search(r"(?i)error|failed|exception|denied|forbidden", ln)]
+        snippet = "\n".join(error_lines[-200:])  # most recent error-ish lines
+        return f"CI logs (tail):\n{tail[-6000:]}\n\nError lines:\n{snippet[-4000:]}"
 
 # ------------------------------- CLI ------------------------------------------
 
 def main():
-    ap = argparse.ArgumentParser(description="AI App Builder (continuous, patches, git, validators).")
+    ap = argparse.ArgumentParser(description="AI App Builder (continuous, patches, git, validators, CI watcher).")
     ap.add_argument("--root", default="./ai_project", help="Project root directory.")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--preset", choices=["firebase","gcp-run"], default=None)
@@ -460,6 +616,12 @@ def main():
                     help="Create a GitHub repo using gh CLI and push after generation (requires gh installed & logged in).")
     ap.add_argument("--remote", type=str, default=None,
                     help="Optional: existing remote URL (HTTPS or SSH) to push changes to.")
+    ap.add_argument("--repo", type=str, default=None,
+                    help="Optional GitHub repo in owner/name form (auto-detected from origin if omitted).")
+    ap.add_argument("--ci-watch", action="store_true",
+                    help="After push, poll GitHub Actions and analyze logs for failures.")
+    ap.add_argument("--ci-timeout", type=int, default=180,
+                    help="Seconds to wait for CI to finish when --ci-watch is set (default: 180).")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     # gen: initial generation
@@ -472,22 +634,22 @@ def main():
     chg.add_argument("--rounds", type=int, default=1,
                      help="Number of consecutive change rounds to run (default: 1).")
 
-    # validate: run build/tests etc. (whitelisted)
+    # validate only
     val = sub.add_parser("validate", help="Run validation commands.")
 
-    # fix: run validate, send logs back, apply returned patches/files
+    # fix with validation logs
     fix = sub.add_parser("fix", help="Validate, send logs to model, and apply the fixes.")
     fix.add_argument("--rounds", type=int, default=2)
 
-    # commit: git add/commit all
+    # commit
     com = sub.add_parser("commit", help="Git add & commit all changes.")
     com.add_argument("-m", "--message", default="chore: update via AI builder")
 
-    # zip: create archive
+    # zip
     zp = sub.add_parser("zip", help="Zip current project.")
     zp.add_argument("--name", default="artifact.zip")
 
-    # history: print saved turns count
+    # history
     hs = sub.add_parser("history", help="Show history length.")
 
     args = ap.parse_args()
@@ -498,19 +660,41 @@ def main():
         verbose=args.verbose
     )
 
-    def _maybe_create_or_push(sc, args):
-        # If user asked to create the repo via gh (once) and there's no origin yet:
+    def _maybe_create_or_push():
+        # Create repo with gh if requested and no origin yet
         if args.gh_create and not sc.git_remote_exists():
             repo_name = Path(args.root).resolve().name
             ok, out, err = sc.gh_repo_create_and_push(repo_name, public=True)
             print("[gh-create]", out if ok else err)
             return
-        # Else push via git if we have/just set a remote
+        # Else set remote (if provided) and push
         if args.remote:
             sc.git_set_remote(args.remote)
         if args.auto_push:
             sc.git_push_u_main()
 
+    def _ci_watch_and_maybe_fix():
+        if not args.ci_watch:
+            return
+        status, logs = sc.ci_poll_and_collect_logs(args.repo, wait_seconds=args.ci_timeout)
+        print(f"[ci] status={status}")
+        if logs:
+            print("[ci logs] (truncated)\n" + logs[-2000:])
+        if status == "failure" and logs:
+            # build a targeted prompt and apply one extra change pass
+            ci_prompt = (
+                "The GitHub Actions deployment failed. "
+                "Analyze the CI logs below (Firebase or Cloud Run) and provide ONLY the changed blocks "
+                "to fix the failure.\n\n" + sc.summarize_ci_logs_for_prompt(logs)
+            )
+            files, diffs, patches = sc.apply_changes(ci_prompt, preset=args.preset, mode=args.mode)
+            sc.write_blocks(files)
+            if diffs:  sc.apply_unified_diff(None, diffs)
+            if patches: sc.apply_json_patches(None, patches)
+            print(f"[ci-fix] Applied: {len(files)} files, {len(diffs)} diffs, {len(patches)} patches")
+            if args.auto_commit:
+                sc.git_commit_all("fix(ci): address CI deployment failure")
+                _maybe_create_or_push()
 
     # ---------------- gen ----------------
     if args.cmd == "gen":
@@ -522,17 +706,8 @@ def main():
         print(f"Generated: {len(files)} files, {len(diffs)} diffs, {len(patches)} patches")
         if args.auto_commit:
             sc.git_commit_all("feat: initial scaffold via AI builder")
-            _maybe_create_or_push(sc, args)
-            if args.gh_create:
-                repo_name = Path(args.root).resolve().name
-                ok, out, err = sc.gh_repo_create_and_push(repo_name, public=True)
-                print("[gh-create]", out if ok else err)
-            elif args.remote:
-                sc.git_set_remote(args.remote)
-                if args.auto_push: sc.git_push_u_main()
-            elif args.auto_push:
-                sc.git_push_u_main()
-
+            _maybe_create_or_push()
+            _ci_watch_and_maybe_fix()
 
     # ---------------- change ----------------
     elif args.cmd == "change":
@@ -546,12 +721,8 @@ def main():
             print(f"[change round {i+1}/{total_rounds}] Applied: {len(files)} files, {len(diffs)} diffs, {len(patches)} patches")
             if args.auto_commit:
                 sc.git_commit_all(f"chore: change (round {i+1}) - {args.instruction[:60]}")
-                _maybe_create_or_push(sc, args)
-
-                if args.remote:
-                    sc.git_set_remote(args.remote)
-                if args.auto_push:
-                    sc.git_push_u_main()
+                _maybe_create_or_push()
+                _ci_watch_and_maybe_fix()
 
     # ---------------- validate ----------------
     elif args.cmd == "validate":
@@ -566,8 +737,7 @@ def main():
         for i in range(args.rounds):
             results = sc.validate_project()
             if all(r["ok"] for r in results):
-                print("✅ Validation passed.")
-                break
+                print("✅ Validation passed."); break
             prompt = sc.feedback_prompt_from_results(results)
             files, diffs, patches = sc.apply_changes(prompt, preset=args.preset, mode=args.mode)
             sc.write_blocks(files)
@@ -576,11 +746,8 @@ def main():
             print(f"[fix round {i+1}/{args.rounds}] Applied: {len(files)} files, {len(diffs)} diffs, {len(patches)} patches")
             if args.auto_commit:
                 sc.git_commit_all(f"fix: apply AI fixes (round {i+1})")
-                _maybe_create_or_push(sc, args)
-                if args.remote:
-                    sc.git_set_remote(args.remote)
-                if args.auto_push:
-                    sc.git_push_u_main()
+                _maybe_create_or_push()
+                _ci_watch_and_maybe_fix()
 
     # ---------------- commit ----------------
     elif args.cmd == "commit":
