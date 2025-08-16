@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "your-run-service",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
