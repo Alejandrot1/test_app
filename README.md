@@ -1,15 +1,13 @@
-# Flask Web App
+## GitHub Actions Deployment
 
-## Build and Run
+This project includes a GitHub Actions workflow for deploying to Google Cloud Run.
 
-1. Build the Docker image:
-      docker build -t flask-web-app .
-   
-2. Run the Docker container:
-      docker run -p 5000:5000 flask-web-app
-   
-3. Access the app at `http://localhost:5000`.
+### Secrets Required
 
-## Database Setup
+- `GCP_PROJECT_ID`: Your Google Cloud project ID.
+- `GCP_SA_KEY`: Base64 encoded service account key JSON for authentication.
 
-- The app uses SQLite for user management. The database will be created automatically on the first run.
+### Deployment Steps
+
+1. Push changes to the `main` branch.
+2. The workflow will automatically build and deploy the application to Google Cloud Run.
