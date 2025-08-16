@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Welcome, {{ user.username }}!</h1>
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
+
+--- diff: backend/templates/home.html ---
+@@ -5,6 +5,7 @@
+    <a href="{{ url_for('login') }}">Login</a>
+    <a href="{{ url_for('register') }}">Register</a>
++    {% if session.user_id %}<a href="{{ url_for('profile') }}">Profile</a>{% endif %}
+--- diff: backend/templates/login.html ---
+@@ -6,6 +6,7 @@
+    <a href="{{ url_for('register') }}">Register</a>
++    {% if session.user_id %}<a href="{{ url_for('profile') }}">Profile</a>{% endif %}
+--- diff: backend/templates/register.html ---
+@@ -6,6 +6,7 @@
+    <a href="{{ url_for('login') }}">Login</a>
++    {% if session.user_id %}<a href="{{ url_for('profile') }}">Profile</a>{% endif %}
+--- diff: backend/static/style.css ---
+@@ -1,5 +1,6 @@
+ body {
+     font-family: Arial, sans-serif;
+     background-color: #f4f4f4;
+     margin: 0;
+     padding: 20px;
++    transition: background-color 0.5s;
+ }
+
+ h1 {
+     color: #333;
+ }

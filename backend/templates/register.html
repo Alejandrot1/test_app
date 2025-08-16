@@ -15,4 +15,4 @@
     </form>
     <a href="{{ url_for('login') }}">Login</a>
 </body>
-</html>
+</html>    {% if session.user_id %}<a href="{{ url_for('profile') }}">Profile</a>{% endif %}
