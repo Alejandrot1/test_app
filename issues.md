@@ -23,3 +23,6 @@
 
 8. **CORS Issues**:
    - If the app is accessed from a front-end, ensure that CORS is properly configured to allow requests from the front-end domain.
+
+9. **Service URL**:
+   - After deployment, verify the service URL and ensure it is correctly configured in any front-end applications.
