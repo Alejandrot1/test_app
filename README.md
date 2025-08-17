@@ -1,13 +1,35 @@
-## GitHub Actions Deployment
+# FastAPI and React App
 
-This project includes a GitHub Actions workflow for deploying to Google Cloud Run.
+## Overview
 
-### Secrets Required
+This project consists of a FastAPI backend and a minimal React frontend.
 
-- `GCP_PROJECT_ID`: Your Google Cloud project ID.
-- `GCP_SA_KEY`: Base64 encoded service account key JSON for authentication.
+### Backend
 
-### Deployment Steps
+- The backend is built using FastAPI and runs on port 8000.
+- It provides an endpoint to create items.
 
-1. Push changes to the `main` branch.
-2. The workflow will automatically build and deploy the application to Google Cloud Run.
+### Frontend
+
+- The frontend is built using React and runs on port 3000.
+- It allows users to create items and send them to the FastAPI backend.
+
+### Getting Started
+
+1. **Backend Setup**:
+   - Navigate to the `backend` directory.
+   - Install the dependencies:
+          pip install -r requirements.txt
+        - Run the FastAPI server:
+          uvicorn main:app --reload
+     
+2. **Frontend Setup**:
+   - Navigate to the `frontend` directory.
+   - Install the dependencies:
+          npm install
+        - Start the React app:
+          npm start
+     
+3. **Access the Application**:
+   - Open your browser and navigate to `http://localhost:3000` to access the React frontend.
+   - The FastAPI backend can be accessed at `http://localhost:8000`.

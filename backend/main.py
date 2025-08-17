@@ -1,11 +1,22 @@
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    return redirect(url_for('home'))
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-@app.route('/profile')
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    return render_template('profile.html', user=user)
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the FastAPI backend!"}
+
+@app.post("/items/")
+def create_item(item: Item):
+    return item
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,0 +1,150 @@
+[debug] [2025-08-17T16:37:57.486Z] ----------------------------------------------------------------------
+[debug] [2025-08-17T16:37:57.489Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Ale\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2025-08-17T16:37:57.489Z] CLI Version:   14.12.1
+[debug] [2025-08-17T16:37:57.489Z] Platform:      win32
+[debug] [2025-08-17T16:37:57.489Z] Node Version:  v22.16.0
+[debug] [2025-08-17T16:37:57.489Z] Time:          Sun Aug 17 2025 12:37:57 GMT-0400 (Eastern Daylight Time)
+[debug] [2025-08-17T16:37:57.490Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-17T16:37:57.492Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-08-17T16:37:57.716Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-17T16:37:57.716Z] > authorizing via signed-in user (at@towngateam.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\Ale\OneDrive\Documents\GitHub\test_app
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[debug] [2025-08-17T16:37:57.822Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-08-17T16:37:57.822Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-08-17T16:38:11.320Z] Checked if tokens are valid: false, expires at: 1753312602121
+[debug] [2025-08-17T16:38:11.321Z] Checked if tokens are valid: false, expires at: 1753312602121
+[debug] [2025-08-17T16:38:11.321Z] > refreshing access token with scopes: []
+[debug] [2025-08-17T16:38:11.322Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-17T16:38:11.322Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-17T16:38:11.432Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-17T16:38:11.432Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-17T16:38:11.443Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=100
+[debug] [2025-08-17T16:38:11.782Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-17T16:38:11.782Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] i  Using project test-app-469316 (test-app) 
+[info] 
+=== App Hosting Setup
+[debug] [2025-08-17T16:38:19.156Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.156Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.157Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/test-app-469316/billingInfo [none]
+[debug] [2025-08-17T16:38:19.419Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/test-app-469316/billingInfo 200
+[debug] [2025-08-17T16:38:19.419Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/test-app-469316/billingInfo {"name":"projects/test-app-469316/billingInfo","projectId":"test-app-469316","billingAccountName":"billingAccounts/01494A-AF1B89-9D7BD8","billingEnabled":true}
+[debug] [2025-08-17T16:38:19.420Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.420Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.420Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-08-17T16:38:19.420Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:19.803Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-08-17T16:38:19.803Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:19.803Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.803Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:19.803Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com:enable [none]
+[debug] [2025-08-17T16:38:19.803Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com:enable x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:20.508Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com:enable 200
+[debug] [2025-08-17T16:38:20.509Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/firebaseapphosting.googleapis.com:enable [omitted]
+[debug] [2025-08-17T16:38:30.515Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.515Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.516Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.517Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.517Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.518Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/cloudbuild.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.518Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/cloudbuild.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.520Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/secretmanager.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.520Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/secretmanager.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.521Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/run.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.521Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/run.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.522Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/artifactregistry.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.522Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/artifactregistry.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.523Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/iam.googleapis.com [none]
+[debug] [2025-08-17T16:38:30.523Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/iam.googleapis.com x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.811Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/run.googleapis.com 200
+[debug] [2025-08-17T16:38:30.811Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/run.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:30.862Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com 200
+[debug] [2025-08-17T16:38:30.862Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:30.863Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.863Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:30.863Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com:enable [none]
+[debug] [2025-08-17T16:38:30.863Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com:enable x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:30.874Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/artifactregistry.googleapis.com 200
+[debug] [2025-08-17T16:38:30.874Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/artifactregistry.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:30.881Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/secretmanager.googleapis.com 200
+[debug] [2025-08-17T16:38:30.881Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/secretmanager.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:30.886Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/cloudbuild.googleapis.com 200
+[debug] [2025-08-17T16:38:30.886Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/cloudbuild.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:30.940Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/iam.googleapis.com 200
+[debug] [2025-08-17T16:38:30.940Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/iam.googleapis.com [omitted]
+[debug] [2025-08-17T16:38:31.518Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com:enable 200
+[debug] [2025-08-17T16:38:31.518Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/test-app-469316/services/developerconnect.googleapis.com:enable [omitted]
+[debug] [2025-08-17T16:38:41.526Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:41.526Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:41.526Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts/firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-08-17T16:38:41.526Z] >>> [apiv2][(partial)header] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts/firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com:testIamPermissions x-goog-quota-user=projects/test-app-469316
+[debug] [2025-08-17T16:38:41.526Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts/firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-08-17T16:38:41.781Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts/firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com:testIamPermissions 404
+[debug] [2025-08-17T16:38:41.782Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts/firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2025-08-17T16:38:41.782Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:41.782Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:41.782Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts [none]
+[debug] [2025-08-17T16:38:41.782Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts {"accountId":"firebase-app-hosting-compute","serviceAccount":{"displayName":"Firebase App Hosting compute service account","description":"Default service account used to run builds and deploys for Firebase App Hosting"}}
+[debug] [2025-08-17T16:38:42.401Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts 200
+[debug] [2025-08-17T16:38:42.401Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/test-app-469316/serviceAccounts [omitted]
+[debug] [2025-08-17T16:38:42.401Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:42.401Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:42.401Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:getIamPolicy [none]
+[debug] [2025-08-17T16:38:42.663Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:getIamPolicy 200
+[debug] [2025-08-17T16:38:42.663Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:getIamPolicy {"version":1,"etag":"BwY8kfVI/no=","bindings":[{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:1090759403292@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudscheduler.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudscheduler.iam.gserviceaccount.com"]},{"role":"roles/cloudtasks.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudtasks.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-1090759403292@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-1090759403292@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:1090759403292-compute@developer.gserviceaccount.com","serviceAccount:1090759403292@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:at@towngateam.com"]},{"role":"roles/pubsub.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-pubsub.iam.gserviceaccount.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-1090759403292@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/vpcaccess.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-vpcaccess.iam.gserviceaccount.com"]}]}
+[debug] [2025-08-17T16:38:42.663Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:42.663Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T16:38:42.663Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:setIamPolicy [none]
+[debug] [2025-08-17T16:38:42.663Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:setIamPolicy {"policy":{"version":1,"etag":"BwY8kfVI/no=","bindings":[{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:1090759403292@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudscheduler.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudscheduler.iam.gserviceaccount.com"]},{"role":"roles/cloudtasks.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudtasks.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-1090759403292@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-1090759403292@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:1090759403292-compute@developer.gserviceaccount.com","serviceAccount:1090759403292@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:at@towngateam.com"]},{"role":"roles/pubsub.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-pubsub.iam.gserviceaccount.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-1090759403292@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/vpcaccess.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-vpcaccess.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]}]},"updateMask":"bindings"}
+[debug] [2025-08-17T16:38:43.509Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:setIamPolicy 200
+[debug] [2025-08-17T16:38:43.509Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/test-app-469316:setIamPolicy {"version":1,"etag":"BwY8kkGVLE4=","bindings":[{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:1090759403292@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudscheduler.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudscheduler.iam.gserviceaccount.com"]},{"role":"roles/cloudtasks.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-cloudtasks.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-1090759403292@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-1090759403292@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:1090759403292-compute@developer.gserviceaccount.com","serviceAccount:1090759403292@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:at@towngateam.com"]},{"role":"roles/pubsub.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-pubsub.iam.gserviceaccount.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-1090759403292@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@test-app-469316.iam.gserviceaccount.com"]},{"role":"roles/vpcaccess.serviceAgent","members":["serviceAccount:service-1090759403292@gcp-sa-vpcaccess.iam.gserviceaccount.com"]}]}
+[info] i  This command links your local project to Firebase App Hosting. You will be able to deploy your web app with `firebase deploy` after setup. 
+[debug] [2025-08-17T17:01:17.939Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T17:01:17.940Z] Checked if tokens are valid: true, expires at: 1755452290432
+[debug] [2025-08-17T17:01:17.940Z] >>> [apiv2][query] GET https://firebaseapphosting.googleapis.com/v1beta/projects/test-app-469316/locations/-/backends 
+[debug] [2025-08-17T17:01:18.411Z] <<< [apiv2][status] GET https://firebaseapphosting.googleapis.com/v1beta/projects/test-app-469316/locations/-/backends 200
+[debug] [2025-08-17T17:01:18.411Z] <<< [apiv2][body] GET https://firebaseapphosting.googleapis.com/v1beta/projects/test-app-469316/locations/-/backends {}
+[debug] [2025-08-17T17:01:23.219Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\Ale\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:518:28)
+    at Interface.emit (node:domain:489:12)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1128:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:267:20)
+    at ReadStream.emit (node:events:530:35)
+    at ReadStream.emit (node:domain:489:12)
+    at emitKeys (node:internal/readline/utils:370:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+[error] 
+[error] Error: An unexpected error has occurred.
