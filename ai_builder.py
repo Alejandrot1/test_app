@@ -14,15 +14,6 @@ from openai import OpenAI
 load_dotenv()
 
 import locale, sys, subprocess, os
-os.environ.setdefault("PYTHONUTF8", "1")           # Python default text encoding -> UTF-8
-os.environ.setdefault("PYTHONIOENCODING", "utf-8") # our stdio
-if os.name == "nt":
-    try:
-        # Switch the current console to UTF-8 codepage to match outputs from git/gh
-        subprocess.run(["chcp", "65001"], capture_output=True, text=True, shell=True)
-    except Exception:
-        pass
-
 # ----------------------------- Constants --------------------------------------
 
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -109,21 +100,36 @@ def ensure_api_key() -> str:
         raise RuntimeError("OPENAI_API_KEY is not set. Add it to your environment or .env file.")
     return key
 
-def run_p(args, cwd=None, shell=False):
+def run_p(args, cwd=None, shell=False, **kwargs):
     """
-    Robust subprocess runner that always decodes as UTF-8 and never crashes on bad bytes.
-    Returns (ok, stdout, stderr).
+    Robust subprocess runner: always decode as UTF-8 and never crash on bad bytes.
+    Accepts extra kwargs but ignores conflicting ones (like capture_output/text).
+    You may pass 'env' and 'input' via kwargs if needed.
     """
+    env = kwargs.get("env")
+    inp = kwargs.get("input")
     p = subprocess.run(
         args,
         cwd=str(cwd) if cwd else None,
         shell=shell,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",   # <-- critical on Windows (bad bytes won't crash)
+        capture_output=True,    # we always capture
+        text=True,              # we always return text
+        encoding="utf-8",       # force utf-8 decoding
+        errors="replace",       # never crash on bad bytes
+        env=env,
+        input=inp,
     )
     return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
+
+os.environ.setdefault("PYTHONUTF8", "1")           # Python default text encoding -> UTF-8
+os.environ.setdefault("PYTHONIOENCODING", "utf-8") # our stdio
+if os.name == "nt":
+    try:
+        # Switch the current console to UTF-8 codepage to match outputs from git/gh
+        run_p(["chcp", "65001"], shell=True)
+    except Exception:
+        pass
+
 
 def strip_code_fences(text: str) -> str:
     text = re.sub(r"```(?:[a-zA-Z0-9_-]+)?\n", "", text)
