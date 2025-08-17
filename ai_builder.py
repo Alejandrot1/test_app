@@ -52,8 +52,6 @@ Firebase preset:
   - firestore.rules, storage.rules (locked by default)
   - .gitignore (.env, node_modules, dist/build, functions/node_modules)
   - .env.example
-  - emulators.json (hosting, firestore, functions if present)
-  - Vite + React + Tailwind (unless user overrides) with tailwind/postcss configs
 - If API requested: Cloud Functions (Node 20, TypeScript) exposing /api/hello (+ rewrite).
 - Include a minimal README with Firebase CLI steps.
 """
@@ -129,6 +127,15 @@ if os.name == "nt":
         run_p(["chcp", "65001"], shell=True)
     except Exception:
         pass
+
+def run_json(args, cwd=None, shell=False):
+    ok, out, err = run_p(args, cwd=cwd, shell=shell)
+    if not ok:
+        return ok, None, err
+    try:
+        return True, json.loads(out or "null"), ""
+    except Exception as e:
+        return False, None, f"JSON parse error: {e}\nRAW:\n{out[:1000]}"
 
 
 def strip_code_fences(text: str) -> str:
@@ -460,20 +467,14 @@ class AIProjectScaffolder:
         return shutil.which("gh") is not None
 
     def gh_repo_create_and_push(self, name: str, public: bool = True):
-        """Create GitHub repo via GH CLI and push current project."""
         if not self.gh_available():
             return False, "", "GitHub CLI (gh) not found in PATH."
-        # auth status (best-effort)
-        auth = run_p(["gh", "auth", "status"], cwd=str(self.project_root_path),
-                              capture_output=True, text=True)
-        if auth.returncode != 0:
-            return False, "", f"gh auth not ready:\n{auth.stderr or auth.stdout}"
+        ok_auth, out_auth, err_auth = run_p(["gh","auth","status"], cwd=self.project_root_path)
+        if not ok_auth:
+            return False, "", f"gh auth not ready:\n{err_auth or out_auth}"
         vis = "--public" if public else "--private"
-        p = run_p(
-            ["gh", "repo", "create", name, "--source", ".", vis, "--push"],
-            cwd=str(self.project_root_path), capture_output=True, text=True
-        )
-        return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
+        ok, out, err = run_p(["gh","repo","create",name,"--source",".",vis,"--push"], cwd=self.project_root_path)
+        return ok, out, err
 
     # ------- CI watch (GitHub Actions) -----------------------------------------
 
@@ -486,25 +487,23 @@ class AIProjectScaffolder:
         return parse_origin_url_to_repo(url)
 
     def gh_actions_latest_run_cli(self, repo: str, branch: str = "main") -> Optional[str]:
-        """Returns run id (string) via gh, or None."""
-        if not self.gh_available(): return None
-        p = run_p(
-            ["gh","run","list","--repo",repo,"--branch",branch,"--limit","1","--json","databaseId,status,conclusion"],
-            capture_output=True, text=True
+        ok, out, _ = run_p(
+            ["gh","run","list","--repo",repo,"--branch",branch,"--limit","1","--json","databaseId,status,conclusion"]
         )
-        if p.returncode != 0: return None
-        data = json.loads(p.stdout or "[]")
-        if not data: return None
-        return str(data[0]["databaseId"])
+        if not ok:
+            return None
+        try:
+            data = json.loads(out or "[]")
+        except Exception:
+            return None
+        if not data:
+            return None
+        return str(data[0].get("databaseId"))
 
     def gh_actions_run_log_cli(self, repo: str, run_id: str) -> Optional[str]:
-        if not self.gh_available(): return None
-        p = run_p(
-            ["gh","run","view",run_id,"--repo",repo,"--log"],
-            capture_output=True, text=True
-        )
-        if p.returncode != 0: return None
-        return p.stdout
+        ok, out, _ = run_p(["gh","run","view",run_id,"--repo",repo,"--log"])
+        return out if ok else None
+
 
     def gh_actions_latest_run_rest(self, owner: str, repo: str, branch: str = "main") -> Optional[int]:
         token = os.getenv("GITHUB_TOKEN", "").strip()
