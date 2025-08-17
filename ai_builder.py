@@ -7,12 +7,21 @@ import os, re, json, zipfile, subprocess, argparse, time, base64
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
-os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
+
+import locale, sys, subprocess, os
+os.environ.setdefault("PYTHONUTF8", "1")           # Python default text encoding -> UTF-8
+os.environ.setdefault("PYTHONIOENCODING", "utf-8") # our stdio
+if os.name == "nt":
+    try:
+        # Switch the current console to UTF-8 codepage to match outputs from git/gh
+        subprocess.run(["chcp", "65001"], capture_output=True, text=True, shell=True)
+    except Exception:
+        pass
 
 # ----------------------------- Constants --------------------------------------
 
@@ -281,7 +290,7 @@ class AIProjectScaffolder:
             target = root_path / rel
             if not target.exists():
                 raise FileNotFoundError(f"File for diff not found: {rel}")
-            original = target.read_text(encoding="utf-8").splitlines(keepends=True)
+            original = target.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
             patched = self._naive_apply_diff(original, diff["content"])
             target.write_text("".join(patched), encoding="utf-8")
             if self.verbose: print("[patch-diff]", target)
@@ -313,7 +322,7 @@ class AIProjectScaffolder:
             target = root_path / rel
             if not target.exists():
                 raise FileNotFoundError(f"File for patch not found: {rel}")
-            text = target.read_text(encoding="utf-8")
+            text = target.read_text(encoding="utf-8", errors="replace")
             ops = json.loads(patch["content"])
             if isinstance(ops, dict): ops = [ops]
             for op in ops:
@@ -336,7 +345,7 @@ class AIProjectScaffolder:
         self.history_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def load_history(self) -> None:
-        raw = json.loads(self.history_path.read_text(encoding="utf-8"))
+        raw = json.loads(self.history_path.read_text(encoding="utf-8", errors="replace"))
         self.history = [ChatTurn(**t) for t in raw]
 
     # ------------- Validation loop -----------------

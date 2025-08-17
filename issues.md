@@ -29,3 +29,6 @@
 
 10. **Health Checks**:
     - Ensure that health checks are configured correctly to avoid service downtime.
+
+11. **Billing Issues**:
+    - Confirm that billing is enabled for your GCP project to avoid deployment failures.
