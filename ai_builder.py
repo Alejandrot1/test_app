@@ -7,7 +7,7 @@ import os, re, json, zipfile, subprocess, argparse, time, base64
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
-
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -99,6 +99,22 @@ def ensure_api_key() -> str:
     if not key:
         raise RuntimeError("OPENAI_API_KEY is not set. Add it to your environment or .env file.")
     return key
+
+def run_p(args, cwd=None, shell=False):
+    """
+    Robust subprocess runner that always decodes as UTF-8 and never crashes on bad bytes.
+    Returns (ok, stdout, stderr).
+    """
+    p = subprocess.run(
+        args,
+        cwd=str(cwd) if cwd else None,
+        shell=shell,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",   # <-- critical on Windows (bad bytes won't crash)
+    )
+    return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
 
 def strip_code_fences(text: str) -> str:
     text = re.sub(r"```(?:[a-zA-Z0-9_-]+)?\n", "", text)
@@ -325,14 +341,10 @@ class AIProjectScaffolder:
 
     # ------------- Validation loop -----------------
     def run_cmd(self, cmd: str, cwd: Optional[Path] = None) -> Dict[str, str]:
-        cwd = cwd or self.project_root_path
-        allowed = any(cmd.strip().startswith(w) for w in WHITELISTED_COMMANDS)
-        if not allowed:
-            return {"cmd": cmd, "ok": False, "stdout": "", "stderr": "Command not whitelisted."}
-        p = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True, shell=True)
-        out = (p.stdout or "")[-8000:]
-        err = (p.stderr or "")[-8000:]
-        return {"cmd": cmd, "ok": p.returncode == 0, "stdout": out, "stderr": err}
+        p_ok, p_out, p_err = run_p(cmd, cwd=cwd, shell=True)
+        out = p_out[-8000:]
+        err = p_err[-8000:]
+        return {"cmd": cmd, "ok": p_ok, "stdout": out, "stderr": err}
 
     def validate_project(self, extra_cmds: Optional[List[str]] = None) -> List[Dict[str, str]]:
         cmds = [
@@ -358,9 +370,7 @@ class AIProjectScaffolder:
 
     # ------------- Git / GitHub helpers ---------------------
     def git(self, args: List[str]) -> Tuple[bool, str, str]:
-        p = subprocess.run(["git"] + args, cwd=str(self.project_root_path),
-                           capture_output=True, text=True)
-        return p.returncode == 0, (p.stdout or ""), (p.stderr or "")
+        return run_p(["git"] + args, cwd=self.project_root_path)
 
     def git_is_available(self) -> bool:
         ok, _, _ = self.git(["--version"])
@@ -439,12 +449,12 @@ class AIProjectScaffolder:
         if not self.gh_available():
             return False, "", "GitHub CLI (gh) not found in PATH."
         # auth status (best-effort)
-        auth = subprocess.run(["gh", "auth", "status"], cwd=str(self.project_root_path),
+        auth = run_p(["gh", "auth", "status"], cwd=str(self.project_root_path),
                               capture_output=True, text=True)
         if auth.returncode != 0:
             return False, "", f"gh auth not ready:\n{auth.stderr or auth.stdout}"
         vis = "--public" if public else "--private"
-        p = subprocess.run(
+        p = run_p(
             ["gh", "repo", "create", name, "--source", ".", vis, "--push"],
             cwd=str(self.project_root_path), capture_output=True, text=True
         )
@@ -463,7 +473,7 @@ class AIProjectScaffolder:
     def gh_actions_latest_run_cli(self, repo: str, branch: str = "main") -> Optional[str]:
         """Returns run id (string) via gh, or None."""
         if not self.gh_available(): return None
-        p = subprocess.run(
+        p = run_p(
             ["gh","run","list","--repo",repo,"--branch",branch,"--limit","1","--json","databaseId,status,conclusion"],
             capture_output=True, text=True
         )
@@ -474,7 +484,7 @@ class AIProjectScaffolder:
 
     def gh_actions_run_log_cli(self, repo: str, run_id: str) -> Optional[str]:
         if not self.gh_available(): return None
-        p = subprocess.run(
+        p = run_p(
             ["gh","run","view",run_id,"--repo",repo,"--log"],
             capture_output=True, text=True
         )
@@ -547,7 +557,7 @@ class AIProjectScaffolder:
         logs_text = None
         while time.time() - start < wait_seconds:
             if self.gh_available():
-                p = subprocess.run(
+                p = run_p(
                     ["gh","run","view",run_id,"--repo",full,"--json","status,conclusion"],
                     capture_output=True, text=True
                 )

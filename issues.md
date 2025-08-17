@@ -26,3 +26,6 @@
 
 9. **Service URL**:
    - After deployment, verify the service URL and ensure it is correctly configured in any front-end applications.
+
+10. **Health Checks**:
+    - Ensure that health checks are configured correctly to avoid service downtime.
