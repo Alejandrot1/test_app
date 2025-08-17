@@ -511,30 +511,26 @@ class AIProjectScaffolder:
         url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs?branch={branch}&per_page=1"
         r = requests.get(url, headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
         if r.status_code != 200: return None
-        js = r.json()
-        runs = js.get("workflow_runs", [])
+        runs = r.json().get("workflow_runs", [])
         if not runs: return None
-        return runs[0]["id"]
+        return runs[0].get("id")
+
 
     def gh_actions_run_log_rest(self, owner: str, repo: str, run_id: int) -> Optional[str]:
         token = os.getenv("GITHUB_TOKEN", "").strip()
         if not token: return None
-        # logs are a zip; GitHub returns a URL that serves a zip
-        url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/logs"
-        r = requests.get(url, headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
-        if r.status_code != 200: return None
-        # Some clients will get a zip; GH also returns a redirect to zip. We’ll just return text pointer.
-        # Simpler approach: also fetch the jobs & steps:
-        jr = requests.get(f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
-                          headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"})
+        jr = requests.get(
+            f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
+            headers={"Authorization": f"Bearer {token}", "Accept":"application/vnd.github+json"}
+        )
         if jr.status_code != 200: return None
         out_lines = []
         for job in jr.json().get("jobs", []):
             out_lines.append(f"# Job: {job.get('name')} ({job.get('status')}/{job.get('conclusion')})")
             for step in job.get("steps", []):
                 out_lines.append(f"## Step: {step.get('name')} ({step.get('status')}/{step.get('conclusion')})")
-                # Individual step logs API is enterprise-only; we capture names/status here.
         return "\n".join(out_lines) if out_lines else None
+
 
     def ci_poll_and_collect_logs(self, repo_hint: Optional[str], branch: str = "main",
                                  wait_seconds: int = 180, poll_interval: int = 10) -> Tuple[str, Optional[str]]:
@@ -570,31 +566,29 @@ class AIProjectScaffolder:
         status = "unknown"
         logs_text = None
         while time.time() - start < wait_seconds:
+            st = None
+            concl = None
             if self.gh_available():
-                p = run_p(
-                    ["gh","run","view",run_id,"--repo",full,"--json","status,conclusion"],
-                    capture_output=True, text=True
-                )
-                if p.returncode == 0:
-                    js = json.loads(p.stdout or "{}")
-                    st = js.get("status"); concl = js.get("conclusion")
-                else:
-                    st = None; concl = None
+                ok, out, _ = run_p(["gh","run","view",run_id,"--repo",full,"--json","status,conclusion"])
+                if ok:
+                    try:
+                        js = json.loads(out or "{}")
+                        st = js.get("status"); concl = js.get("conclusion")
+                    except Exception:
+                        st = None; concl = None
             else:
                 token = os.getenv("GITHUB_TOKEN","").strip()
-                if not token: break
-                rr = requests.get(f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}",
-                                  headers={"Authorization": f"Bearer {token}","Accept":"application/vnd.github+json"})
-                if rr.status_code != 200: break
-                jj = rr.json(); st = jj.get("status"); concl = jj.get("conclusion")
+                if token and owner and repo:
+                    rr = requests.get(
+                        f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}",
+                        headers={"Authorization": f"Bearer {token}","Accept":"application/vnd.github+json"}
+                    )
+                    if rr.status_code == 200:
+                        jj = rr.json()
+                        st = jj.get("status"); concl = jj.get("conclusion")
 
-            if st in ("completed","success","failure","cancelled") or (st=="completed" and concl):
-                if concl == "success":
-                    status = "success"
-                elif concl in ("failure","cancelled","timed_out","action_required"):
-                    status = "failure"
-                else:
-                    status = "unknown"
+            if st == "completed" and concl:
+                status = "success" if concl == "success" else "failure"
                 break
 
             time.sleep(poll_interval)
